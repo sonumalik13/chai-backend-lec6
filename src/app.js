@@ -1,4 +1,4 @@
-import express from "import";
+import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 
@@ -14,5 +14,13 @@ app.use(express.json({limit: "16kb"}))
 app.use(express.urlencoded({extended: true, limit: "16kb"}))  //ye configration isliye hai ki jab bhi kuch search karte hai chai aur code isko decode karne ke liye use karte hai-->chai+aur+code
 app.use(express.static("public"))
 app.use(cookieParser())
+
+
+//routes import
+ import userRouter from './routes/user.routes.js'
+
+//routes declaration
+app.use("/api/v1/users", userRouter)
+
 
 export { app }
