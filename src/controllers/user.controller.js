@@ -4,13 +4,18 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/Cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-const registerUser = asyncHandler( async (req, res)=>{
+const registerUser = asyncHandler(async (req, res) => {
     /*
     res.status(200).json({
         message:"Post Man Done"
 
     }) 
     */
+    // ye post man me array ke form
+    // const allFiles = [
+    // ...(req.files?.avatar || []),
+    // ...(req.files?.coverImage || [])
+    // ];
 
     // get user details from frontend
     // validation - not empty
@@ -23,8 +28,8 @@ const registerUser = asyncHandler( async (req, res)=>{
     // return response
 
 
-    const { username,fullName,email,password } = req.body 
-     //form or json se aaye to req.body milta hai,url se bhiaasakta 
+    const { username, fullName, email, password } = req.body
+    //form or json se aaye to req.body milta hai,url se bhiaasakta 
     console.log("email: ", email);
     console.log("FullName: ", fullName);
     console.log("username: ", username);
@@ -34,55 +39,75 @@ const registerUser = asyncHandler( async (req, res)=>{
     //     throw new ApiError (400,"Full Name is Required");
     // }   // single check its good idea
 
-    if(
-        [fullName,username,email,password].some(() => field?.trim()=== "")
+    if (
+        [fullName, username, email, password].some((field) => field?.trim() === "")
     ) {
-        throw new ApiError(400,"All Fields Are Required")
+        throw new ApiError(400, "All Fields Are Required")
     }
 
-    const existedUser = User.findOne({
-        $or:[{ username },{ email }]  //two or more value check exist
+    const existedUser = await User.findOne({
+        $or: [{ username }, { email }]  //two or more value check exist
     })
 
-    if(existedUser) {
+    if (existedUser) {
         throw new ApiError(409, "User With email or username already exists")
     }
 
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    // const coverImageLocalPath = req.files?.coverImage[0]?.path;
 
-    if(!avatarLocalPath) {   //localpathavatar nhi return
-        throw new ApiError(400,"Avatar file is required")
+    // Cover Image Upload Nahi Karna ho To Uke Liye
+    let coverImageLocalPath;
+    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
+        coverImageLocalPath = req.files.coverImage[0].path
     }
 
+    if (!avatarLocalPath) {   //localpathavatar nhi return
+        throw new ApiError(400, "Avatar file is required")
+    }
+    console.log("req.files:", req.files);
+    // console.log("req.body:", req.body);
+    // console.log("avatarLocalPath:", avatarLocalPath); //ye batayega ki image kha hai
+    // console.log("Cover image local path:", coverImageLocalPath);
+    
+
     const avatar = await uploadOnCloudinary(avatarLocalPath)
+
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
-    if(!avatar) {
-        throw new ApiError(400,"Avatar file id required")
+    // console.log("Avatar uploaded URL:", avatar?.secure_url);
+    // console.log("Cover Image uploaded URL:", coverImage?.secure_url);
+
+
+    if (!avatar) {
+        throw new ApiError(400, "Avatar file IDs required")
     }
 
     const user = await User.create({
         fullName,
-        avatar:avatar.url,
-        coverImage:coverImage?.url || "",
+        avatar: avatar.secure_url,
+        coverImage: coverImage?.secure_url || "",
         email,
         password,
-        username:username.toLowerCase()
+        username: username.toLowerCase()
     })
 
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     ) //jo apko nahi chahiye
-    if(!createdUser) {
-        throw new ApiError(500,"something went wrong while registering the user")
+    if (!createdUser) {
+        throw new ApiError(500, "something went wrong while registering the user")
     }
 
-    return res.status(201).json (
-        new ApiResponse(200,createdUser,"User Registered Successfully")
+    return res.status(201).json(
+        new ApiResponse(200, createdUser, "User Registered Successfully")
+        //    {     
+        //     message: "Files received successfully!",
+        //     files: allFiles
+        //     },
     )
 
-} )
+})
 
 
-export {registerUser}
+export { registerUser }

@@ -1,89 +1,89 @@
-import mongoose,{Schema} from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
 
 const userSchema = new Schema(
     {
-        username:{
-            type:String,
-            required:true,
-            unique:true,
-            lowercase:true,
-            trim:true,
-            index:true,    //its used for searching its not compulsory
+        username: {
+            type: String,
+            required: true,
+            unique: true,
+            lowercase: true,
+            trim: true,
+            index: true,    //its used for searching its not compulsory
         },
-        email:{
-            type:String,
-            required:true,
-            unique:true,
-            lowercase:true,
-            trim:true
-            
+        email: {
+            type: String,
+            required: true,
+            unique: true,
+            lowercase: true,
+            trim: true
+
         },
-        fullName:{
-            type:String,
-            required:true,
-            lowercase:true,
-            trim:true
+        fullName: {
+            type: String,
+            required: true,
+            lowercase: true,
+            trim: true
         },
-        avatar:{
-            type:String, //cloudinary url
-            required:true            
+        avatar: {
+            type: String, //cloudinary url
+            required: true
         },
-        CoverImage:{
-            type:String, //cloudinary url
+        coverImage: {
+            type: String, //cloudinary url
         },
-        watchHistory:[
+        watchHistory: [
             {
-                type:Schema.Types.ObjectId,
-                ref:"video"
+                type: Schema.Types.ObjectId,
+                ref: "video"
             }
         ],
-        password:{
-            type:String,
-            required:[true,'Password is required']
+        password: {
+            type: String,
+            required: [true, 'Password is required']
         },
-        refreshToken:{
-            type:String,
+        refreshToken: {
+            type: String,
 
         }
 
     },
     {
-        timestamps:true
+        timestamps: true
     }
 )
 
-userSchema.pre("save", async function(next){
-    if(!this.isModified("password")) return next ();
+userSchema.pre("save", async function (next) {
+    if (!this.isModified("password")) return next();
 
-    this.password = await bcrypt.hash(this.password,10)
+    this.password = await bcrypt.hash(this.password, 10)
     next()
 })
 
-userSchema.methods.isPasswordCorrect = async function(password){
-    return await bcrypt.compare(password,this.password)
+userSchema.methods.isPasswordCorrect = async function (password) {
+    return await bcrypt.compare(password, this.password)
 }
 
-userSchema.methods.generateAccessToken = function(){
+userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
             _id: this._id,
-            email:this.email,
-            username:this.username,
-            fullName:this.fullName
+            email: this.email,
+            username: this.username,
+            fullName: this.fullName
         },     //payload
         process.env.ACCESS_TOKEN_SECRET,
         {
-            expiresIn:process.env.ACCESS_TOKEN_EXPIRY
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )
 }
-userSchema.methods.generateRefreshToken = function(){
+userSchema.methods.generateRefreshToken = function () {
     return jwt.sign(
         {
             _id: this._id,
-            
+
         },     //payload
         process.env.REFRESH_TOKEN_SECRET,
         {
@@ -92,4 +92,4 @@ userSchema.methods.generateRefreshToken = function(){
     )
 }
 
-export const User = mongoose.model("User",userSchema);
+export const User = mongoose.model("User", userSchema);
