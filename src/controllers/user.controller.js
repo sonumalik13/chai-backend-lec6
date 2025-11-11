@@ -289,7 +289,7 @@ const updateAccountDetails = asyncHandler(async(res,req)=>{
                 fullName:fullName,
                 email:email
             }
-        }
+        },
         {new : true}
     ).select("-password")
 
@@ -359,11 +359,133 @@ const updateUserCoverImage = asyncHandler(async(res,req)=>{
     )
 })
 
+const getUserChannelProfile = asyncHandler(async(res,req)=>{
+    const {username} = req.params
 
+    if(!username?.trim()){
+        throw new ApiError(400,"username is missing")
+    }
+    const channel = await User.aggregate([
+        {
+            $match:{
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup:{
+                from:"subscriptions",  //all lowercase and plural ho jati
+                localField:"_id",
+                foreignField:"channel",  //channel se subscriber milega
+                as:"subscribers"   //kitne subscribers hai
+                
+            }
+        },
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField:"_id",
+                foreignField:"subscriber",
+                as:"SubscribedTo",    //maine kisko subscribe kiya hai
+            }
+        },
+        {
+            $addFields:{
+                subscribersCount:{
+                    $size:"$subscribers"  //subscribers ka count
+                },
+                channelSubscribedToCount:{
+                    $size:"SubscribedTo"
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},
+                        then:true,
+                        else:false
+                    }
+                }
+            }
+        },
+        {
+            $project:{
+                fullName:1,
+                username:1,
+                subscribersCount:1,
+                channelSubscribedToCount:1,
+                isSubscribed:1,
+                avatar:1,
+                coverImage:1,
+                email:1
 
+            }
+        }
+    ])
 
+    if(!channel?.length){
+        throw new ApiError(404,"channel does not exist")
+    }
 
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200,channel[0],"User Channel Fetched Successfully")
+    )
+})
 
+const getWatchHistory = asyncHandler(async (res,req)=>{
+    const user = await User.aggregate([
+        {
+            $match: {
+                // _id:req.user._id  //its not work, monggose kaam nahi karta aggregate pipeline ki code direct jata hai,so create mongoose object id
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+             
+        },  
+        {
+            $lookup:{
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullName:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }  //add fields use karte hai taaki array ke form me data hota hai,jo fronted ke pass jata addfiels ki madad se array me first data nikal sakte h
+                    }
+                ]
+            }
+        },
+    ])
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(
+            200,
+            user[0].watchHistory,"watch History Successfully"
+        )
+        
+    )
+})
 
 
 export { 
@@ -375,5 +497,7 @@ export {
     getCurrentUser,
     updateAccountDetails,
     updateUserAvatar,
-    updateUserCoverImage
+    updateUserCoverImage,
+    getUserChannelProfile,
+    getWatchHistory
 }
