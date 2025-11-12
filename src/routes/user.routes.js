@@ -2,7 +2,7 @@ import { Router } from "express";
 import { loginUser, registerUser,logoutUser,refreshAccessToken, changeCurrentPassword, getCurrentUser, updateAccountDetails, updateUserAvatar, updateUserCoverImage, getUserChannelProfile, getWatchHistory } from "../controllers/user.controller.js";
 import {upload} from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js";
-import { verify } from "jsonwebtoken";
+// import {verify} from "jsonwebtoken";
 
 
 
@@ -34,7 +34,8 @@ router.route("/avatar").patch(verifyJWT,upload.single("avatar"),updateUserAvatar
 router.route("/cover-image").patch(verifyJWT,upload.single("coverImage"),updateUserCoverImage)
 
 // isme data params me se aa rha hai
-router.route("/c/:username").get(verifyJWT,getUserChannelProfile)
+router.route("/c/:username").get(verifyJWT,getUserChannelProfile) //:username->yha pe username dalna hoga
+
 router.route("/history").get(verifyJWT,getWatchHistory)
 
 export default router

@@ -3,6 +3,8 @@ import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/Cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
+import mongoose from "mongoose";
+
 
 // access and refresh token ek sath generate karna ho ek method bana lete easily access kar lete hai.
 
@@ -187,8 +189,8 @@ const logoutUser = asyncHandler(async(req, res)=>{
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set : {
-                refreshToken: undefined
+            $unset : {
+                refreshToken: 1
             }
         },
         {
@@ -274,7 +276,7 @@ const getCurrentUser = asyncHandler(async (req,res)=>{
     .json(200, req.user, " currrent user fetched successfully ")
 })
 
-const updateAccountDetails = asyncHandler(async(res,req)=>{
+const updateAccountDetails = asyncHandler(async(req,res)=>{
 
     const {fullName,email} = req.body
 
@@ -299,7 +301,7 @@ const updateAccountDetails = asyncHandler(async(res,req)=>{
 
 })
 
-const updateUserAvatar = asyncHandler(async(res,req)=>{
+const updateUserAvatar = asyncHandler(async(req,res)=>{
     const avatarLocalPath = req.file?.path
 
     if(!avatarLocalPath){
@@ -329,7 +331,7 @@ const updateUserAvatar = asyncHandler(async(res,req)=>{
     )
 })
 
-const updateUserCoverImage = asyncHandler(async(res,req)=>{
+const updateUserCoverImage = asyncHandler(async(req,res)=>{
     const coverImageLocalPath = req.file?.path
 
     if(!coverImageLocalPath){
@@ -359,8 +361,9 @@ const updateUserCoverImage = asyncHandler(async(res,req)=>{
     )
 })
 
-const getUserChannelProfile = asyncHandler(async(res,req)=>{
+const getUserChannelProfile = asyncHandler(async(req,res)=>{
     const {username} = req.params
+
 
     if(!username?.trim()){
         throw new ApiError(400,"username is missing")
@@ -394,7 +397,7 @@ const getUserChannelProfile = asyncHandler(async(res,req)=>{
                     $size:"$subscribers"  //subscribers ka count
                 },
                 channelSubscribedToCount:{
-                    $size:"SubscribedTo"
+                    $size:"$SubscribedTo"
                 },
                 isSubscribed:{
                     $cond:{
@@ -431,7 +434,7 @@ const getUserChannelProfile = asyncHandler(async(res,req)=>{
     )
 })
 
-const getWatchHistory = asyncHandler(async (res,req)=>{
+const getWatchHistory = asyncHandler(async (req,res)=>{
     const user = await User.aggregate([
         {
             $match: {
